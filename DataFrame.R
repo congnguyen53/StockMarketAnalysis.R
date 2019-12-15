@@ -1,0 +1,23 @@
+getSymbols("AMZN",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("AAPL",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("GOOGL",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("HD",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("M",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("UGAZ",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("DGAZ",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("UNG",from="2015-12-06",to="2019-11-25", src='yahoo')
+df1 = data.frame(Date=index(AMZN),coredata(AMZN))
+df2 = data.frame(Date=index(AAPL),coredata(AAPL))
+df3 = data.frame(Date=index(GOOGL),coredata(GOOGL))
+df4 = data.frame(Date=index(UGAZ),coredata(UGAZ))
+df5 = data.frame(Date=index(DGAZ),coredata(DGAZ))
+df7 = data.frame(Date=index(UNG),coredata(UNG))
+head(df1)
+df1 = df1%>% mutate(Day = day(Date))
+Growth.Function = function(net){
+    ifelse(net>= 0, 1,0)
+}
+df1['Growth'] = Growth.Function(df1$AMZN.Close-df1$AMZN.Open)
+
+df1 = df1%>% mutate(TrueRange = AMZN.High-AMZN.Low)
+head(df1)
