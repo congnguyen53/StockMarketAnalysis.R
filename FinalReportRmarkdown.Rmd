@@ -1,0 +1,202 @@
+---
+title: "Stock Market Analysis Report"
+output:
+  pdf_document: default
+  html_document: default
+---
+The project import data and built-in functions from "quantmod' library. Quantmod library import stock data from yahoo finance  that were used in the report. The variables of the data:  
++**Closing Price** is the closing price of the day when the market closes at 4:00PM  
++**Opening Price** is the opening price of the day when the market opens at 9:30AM  
++**High and Low** Price are the highest and lowest price traded during the day, respectively  
++**Volume** which are the amount of shares being bought and sold during the day  
++**Adjusted Price** is the price reflect that stock's value after accounting for any corporate actions such as stock splits, dividends / distributions and rights offerings
+
+
+The librabries used in the project. 
+```{r setup}
+library(quantmod)
+library(xts)
+library(zoo)
+library(rvest)
+library(tidyverse)
+library(tidyquant)
+library(stringr)
+library(forcats)
+library(lubridate)
+library(plotly)
+library(dplyr)
+library(magrittr)
+library(PerformanceAnalytics)
+library(memisc)
+```
+
+Data Frame
+
+The indexes used in this project were AMZN(Amazon Inc), AAPL(Apple Inc), GOOGL(Alphabeth Inc), HD(Home Depot) and UGAZ,DGAZ(UNG indicator)
+```{r }
+getSymbols("AMZN",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("AAPL",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("GOOGL",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("HD",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("M",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("UGAZ",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("DGAZ",from="2015-12-06",to="2019-11-25", src='yahoo')
+getSymbols("UNG",from="2015-12-06",to="2019-11-25", src='yahoo')
+df1 = data.frame(Date=index(AMZN),coredata(AMZN))
+df2 = data.frame(Date=index(AAPL),coredata(AAPL))
+df3 = data.frame(Date=index(GOOGL),coredata(GOOGL))
+df4 = data.frame(Date=index(UGAZ),coredata(UGAZ))
+df5 = data.frame(Date=index(DGAZ),coredata(DGAZ))
+df7 = data.frame(Date=index(UNG),coredata(UNG))
+head(df1)
+df1 = df1%>% mutate(Day = day(Date))
+Growth.Function = function(net){
+    ifelse(net>= 0, 1,0)
+}
+df1['Growth'] = Growth.Function(df1$AMZN.Close-df1$AMZN.Open)
+
+df1 = df1%>% mutate(TrueRange = AMZN.High-AMZN.Low)
+head(df1)
+
+```
+**Addition variables** are *TrueRange* and *Growth*. *TrueRange* is High minus Low. This tracks the volatility of stock.This an important variables because, day trader relies on the price variation to make profits, a stock with high TrueRange compared to the price means a better opportunity to make profit. *Growth* is the indicator variables that tracks if closing price is higher than the opening price.
+
+
+Candle Chart of AMZN from 2017-06-06 to 2019-11-25.  
+Candle Chart of AMZN from 2019-06-06 to 2019-11-25.
+
+
+The *Candle charts* helps with identifying price movements, patterns and trends which are the important ingredients to predict future direction of a stock’s price.
+```{r}
+A = df1 %>%
+  ggplot(aes(x = Date, y = AMZN.Close)) +
+  geom_candlestick(aes(open = AMZN.Open, high = AMZN.High, low = AMZN.Low, close =AMZN.Close),
+                   colour_up = "forestgreen", colour_down = "red",
+                   fill_up = "forestgreen", fill_down = "red") +
+  geom_ma(color = "gold4", n = 9)  + geom_ma(color = "gray7", n = 180) +
+  coord_x_date(xlim = c("2019-06-06", "2019-11-25"),ylim = c(1550, 2100))+
+  ggtitle("AMZN") +
+  xlab("Date") + ylab("Price") 
+A
+B = df1 %>%
+  ggplot(aes(x = Date, y = AMZN.Close)) +
+  geom_candlestick(aes(open = AMZN.Open, high = AMZN.High, low = AMZN.Low, close =AMZN.Close),
+                   colour_up = "forestgreen", colour_down = "red",
+                   fill_up = "forestgreen", fill_down = "red") +
+  geom_ma(color = "gold4", n = 9)  + geom_ma(color = "gray7", n = 180) +
+  coord_x_date(xlim = c("2017-06-06", "2019-11-25"),ylim = c(800, 2100))+
+  ggtitle("AMZN") +
+  xlab("Date") + ylab("Price") +geom_smooth(method="lm")
+B
+
+
+
+```
+The candle chart also contains simple moving average values which is short for “SMA”, it is an *arithmetic moving average* calculated by taking the sum of assigned closing prices over a period of time and then dividing it by that number of time periods in the calculation average. Short-term averages respond quickly to changes in the price of the index, while long-term averages react slower. This helps investors to identify potential market directions by studying previous the overall trend and previous pattern of the stock following the SMA line.  
+Key Benefits:  
++The SMA is a technical indicator for determining if an asset price will continue or reverse a bull or bear trend.   
++The SMA is calculated as the arithmetic average of an asset's price over some period.  
+The most important benefit of the candle chart with the SMA indicators is to help identifying possible trend reversal  
+
+```{r}
+model = lm(AAPL.Close~ AAPL.Volume, data = df2)
+summary(model)
+coefficients(model)
+
+model2 = lm(AMZN.Close~ AMZN.Volume, data = df1)
+summary(model2)
+coefficients(model2)
+
+model3 = lm(GOOGL.Close~ GOOGL.Volume, data = df3)
+summary(model3)
+coefficients(model3)
+
+ggplot(data=df2, aes(x=AAPL.Volume, y=AAPL.Close))+geom_point()+geom_smooth(method="lm")
+ggplot(data=df1, aes(x=AMZN.Volume, y=AMZN.Close))+geom_point()+geom_smooth(method="lm")
+ggplot(data=df3, aes(x=GOOGL.Volume, y=GOOGL.Close))+geom_point()+geom_smooth(method="lm")
+
+```
+The linear model of Closing Price and Volume for index AAPL, AMZN, GOOGL.
+In all three cases, the t value is extremely low, and lower than 0.05. The data is highly significant. 
+Similarly for the F-test of overall model utility,for all three stocks, the equations are useful in making predictions of y value because the p-value is much lower than 0.05. Hence, Volume is extremely important in predicting price movement of a Stock.  
+**AAPL**: Closing price = -7.491e-07* Volume+ 1.843e+02   
+**GOOGL**:Closing price = -2.499e-05* Volume+ 1.039e+03  
+**AMZN**: Closing price = 2.423e-05* Volume+ 1.151e+03  
+Here the results showed that for AAPL and GOOGL. Volume and Closing Price has a inverse relationship which means the higher the volume, the lower the closing price is. On other hand, for AMZN the higher the volume, the higher the closing price  
+  
+**Log Return**:  
+The logarithmic return is a way of calculating the rate of return on investment, in this case a stock’s price.The main benefit of using log returns rather than price is normalization. It measures all stocks in a comparable system that helps with identifying and analyzing relationships amongst two or more stocks despite considerable price differentiation.  
+**Correlations**:  
+A popular investing strategy is to diversify your stock portfolio. A good portfolio usually composed of many different types of stock that has a small correlation because you want to minimize **risk**.
+```{r}
+data=cbind(diff(log(Cl(GOOGL))),diff(log(Cl(AMZN))),diff(log(Cl(M))),diff(log(Cl(HD))))
+chart.Correlation(data)
+
+
+```
+Using built in function of “PerformanceAnalytics” library. I was able to create correlation matrix visualizations. On top of the figures are the Correlation coefficient (r) which is the strength of the relationship between the Closing Price of each stock, plus the *p-value* which is the significance of the relationship shown as the star: 
+
+*** p-value < 0.001 < **  p-value < 0.01 < * p-value < 0.05 < .  p-value < 0.1 < " "  p-value < 1.  
+
+On bottom are the Scatter plots of the Correlation coefficient with fitted lines.In addition, figure is showing the normal distribution of daily log returns of the specified stocks which will help an investor the consistency rate in a stock.
+The report mainly focused on the correlation coefficient values.  
+*GOOGL* and *AMZN* have the highest correlation of 0.67 while *M*  and *AMZN* have the lowest correlation of 0.10. The high correlation between Amazon and Google relatively high because they are both in the technology sector. It is a smart strategy to purchase stocks from different sectors to limit the risk and increase rates of return. 
+
+
+```{r}
+data1=cbind(diff(log(Cl(UGAZ))),diff(log(Cl(DGAZ))),diff(log(Cl(UNG))))
+chart.Correlation(data1)
+```
+Before going over why the correlation coefficient are extremely high, showing an almost perfect correlation level with these indexes.  
+First, *UGAZ* and *DGAZ* are **Velocity shares** which is a **leveraged stock** that is based on the performance of *UNG*. In other words, they are Leveraged Commodities tracking the price of Natural Gas. Traders first have to understand its relationship with each other which is perfectly illustrated here using R. 
+The figure shows *UGAZ* and *UNG* having a correlation of 0.99. While *UGAZ* and *DGAZ* have the correlation of -0.97, which means they have an inverse relationship. With this information, a trader can learn how to profit regardless of the direction of the market.
+
+```{r}
+AAPLDaily = diff(log(Cl(AAPL)))
+AMZN_sd=sd(data$AMZN.Close, na.rm = TRUE)
+HD_sd=sd(data$HD.Close, na.rm = TRUE)
+M_sd=sd(data$M.Close, na.rm = TRUE)
+AAPL_sd=sd(AAPLDaily, na.rm = TRUE)
+GOOGL_sd=sd(data$GOOGL.Close, na.rm = TRUE)
+
+AMZN_mean=mean(data$AMZN.Close, na.rm = TRUE)
+HD_mean=mean(data$HD.Close, na.rm = TRUE)
+M_mean=mean(data$M.Close, na.rm = TRUE)
+AAPL_mean=mean(AAPLDaily, na.rm = TRUE)
+GOOGL_mean=mean(data$GOOGL.Close, na.rm = TRUE)
+
+riskgraph=data.frame(rbind(c(AMZN_mean,AMZN_sd),c(HD_mean,HD_sd),c(M_mean,M_sd),c(AAPL_mean,AAPL_sd),c(GOOGL_mean,GOOGL_sd)))
+
+colnames(riskgraph)=c("Mean_Log_Return", "Sd_Log_Return")
+Index=c("AMZN","HD","M","AAPL","GOOGL")
+riskgraph =cbind(Index,riskgraph)
+riskgraph
+ggplot()+ labs(title = "Risk vs Reward", x= "Reward",y="Risk")+ 
+  geom_point(data=riskgraph,aes(x=Mean_Log_Return,y=Sd_Log_Return,color=Index))
+    
+```
+By taking the mean of the log return. The report shows more general long term direction of a stock. A positive mean would mean the company is growing while a negative mean would be the opposite. Standard deviation of log returns is the Variation between data point in relation to the mean. A high standard deviation values would represent a high price range and more risk, vice versa. In the world of finance, many investors factor standard deviation values as risk management. 
+
+```{r}
+
+AMZN_log_returns=AMZN%>%Ad()%>%annualReturn(type='log')*100
+GOOGL_log_returns=GOOGL%>%Ad()%>%annualReturn(type='log')*100
+AAPL_log_returns=AAPL%>%Ad()%>%annualReturn(type='log')*100
+HD_log_returns=HD%>%Ad()%>%annualReturn(type='log')*100
+M_log_returns=M%>%Ad()%>%annualReturn(type='log')*100
+data2=cbind(AMZN_log_returns,GOOGL_log_returns,AAPL_log_returns,HD_log_returns,M_log_returns)
+names(data2)[1] = "AMZN_Return"
+names(data2)[2] = "GOOGL_Return"
+names(data2)[3] = "AAPL_Return"
+names(data2)[4] = "HD_Return"
+names(data2)[5] = "M_Return"
+data2
+```
+The important factor in long term investment is tracking a company growth rate. The annual log return shows a more overall and consistent rate at which a company is doing financially. Daily return would be more useful for day trader, but overall this method is more efficiently used finding a long term investment.
+
+## In conclusion:  
+Data Science is extremely important as a tool to help people trade and invest more efficiently. However, people should not solely rely on statistics and data analysis alone since there are other uncontrolled variables that investor has to take into consideration as well, such as:  
++ **Catalyst**: an event that causes the stock to move (news)  
++ **Federal Regulation**: Interest rate  
++ **Balance sheet/Income**: Company’s financial  
+
